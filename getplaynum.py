@@ -35,7 +35,7 @@ def makeVideoInfoList(uid):
             'tid': 0,
             'page': i,
             'keyword': '',
-            'order': 'pubdate',
+            'order': 'pubdate'
         }).json()
         #print(len(response['data']['vlist']))
         for info in response['data']['vlist']:
