@@ -44,7 +44,8 @@ def makeVideoInfoList(uid):
     return Sheet
 
 if __name__ == "__main__":
-    mid = 37663924
+    #mid = 37663924
+    mid = input("UID:")
     videolist = makeVideoInfoList(mid)
     sum = 0
     #print(len(videolist))
