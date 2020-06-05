@@ -2,7 +2,7 @@ import requests
 import json
 import subprocess
 import os
-from requests.cookies import RequestsCookieJar
+#from requests.cookies import RequestsCookieJar
 
 GET_VIDEO_INFO_URL = "https://api.bilibili.com/x/web-interface/view"
 GET_VIDEO_DOWNLOAD_URL = "https://api.bilibili.com/x/player/playurl"
