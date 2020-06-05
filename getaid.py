@@ -16,3 +16,15 @@ if __name__ == "__main__":
     #bvid = "BV1LT4y1g7uw"
     bvid = input("请输入BV号：")
     Info = getVideoInfo(bvid)
+    title = Info['title']
+    pages = Info['pages']
+    owner = Info['owner']
+    desc = Info['desc']
+    aid = Info['aid']
+    print('标题：'+title)
+    print('BV号：'+bvid)
+    print('av号：av'+str(aid))
+    print('P数：'+str(len(pages)))
+    print('UP主：'+owner['name'])
+    print('UID：'+str(owner['mid']))
+    print('简介：\n'+desc)
