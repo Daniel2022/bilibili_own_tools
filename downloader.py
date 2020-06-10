@@ -20,7 +20,7 @@ headers = {
     "upgrade-insecure-requests": '1'
 }
 
-quality_dict = {
+quality_dict = { #这个不知道写来干吗
     "4K": 120,
     "1080p60": 116,
     "720p60": 74,
@@ -31,14 +31,14 @@ quality_dict = {
     "360p":16
 }
 
-def getVideoInfo(bid):
+def getVideoInfo(bid): #拉取稿件信息，获取p数和cid
     response = requests.get(GET_VIDEO_INFO_URL, {
         "bvid": bid
     }).json()
     if response['code'] == 0:
         return response['data']
 
-def getPlayUrl(bvid, cid, qn=80):
+def getPlayUrl(bvid, cid, qn=80): #get链接获取api，返回全部URL数据
     response = requests.get(GET_VIDEO_DOWNLOAD_URL,{
         'bvid': bvid,
         'cid': cid,
@@ -52,7 +52,7 @@ def getPlayUrl(bvid, cid, qn=80):
     if response['code'] == 0:
         return response['data']
 
-def getVedioAndAudioUrls(data,qn=80):
+def getVedioAndAudioUrls(data,qn=80): #根据画质解析对应URL，有H265则保存
     Urllist={'Video_avc':'','Video_hev':'','Audio':''}
     AudioUrl = data['dash']['audio'][0]['baseUrl']
     VideoUrls = data['dash']['video']
@@ -76,13 +76,13 @@ def getVedioAndAudioUrls(data,qn=80):
     Urllist['Audio'] = AudioUrl
     return Urllist
         
-def WeatherHaveH265(Urllist):
+def WeatherHaveH265(Urllist): #判断是否获取到H265URL
     if Urllist['Video_hev'] == '':
         return False
     else:
         return True
 
-def Download(vurl, aurl, bvid, page, title):
+def Download(vurl, aurl, bvid, page, title): #启动下载，使用aria2c，ffmpeg合流
     referer = "https://www.bilibili.com/video/"
     downshell = "aria2c -s 5 -D -o Video.mp4 " + "\"" + vurl + "\" --referer=" + referer + str(bvid) + "?p=" + str(page)
     subprocess.Popen([r'powershell',downshell]).wait()
@@ -98,14 +98,14 @@ if __name__ == "__main__":
     #bvid = "BV1LT4y1g7uw"
     bvid = input("请输入BV号：")
     Info = getVideoInfo(bvid)
-    title = Info['title']
+    title = Info['title'] #这里应该要处理下有些字符不能作为windows文件名的问题？？？
     pages = Info['pages']
     print('This video has',len(pages),'page(s)')
     if len(pages) != 1:
         page = int(input("选择P："))-1
     else:
         page = 0
-    print('画质选择 4K:120\n1080p60: 116\n720p60: 74\n1080p: 80\n720p: 64\n480p: 32\n360p: 16')
+    print('画质选择 \n4K:120\n1080p60: 116\n720p60: 74\n1080p: 80\n720p: 64\n480p: 32\n360p: 16')
     qn = int(input("选择画质："))
     cid = pages[page]['cid']
     data = getPlayUrl(bvid, cid, qn)
