@@ -2,6 +2,8 @@ import requests
 import json
 
 GET_NUM_URL = "https://space.bilibili.com/ajax/member/getSubmitVideos"
+GET_INFO_URL = "https://api.bilibili.com/x/space/acc/info"
+GET_FAN_URL = "https://api.bilibili.com/x/relation/stat"
 
 class Video: #定义类
     def __init__(self, aid, title, playnum):
@@ -14,6 +16,30 @@ class Video: #定义类
         #print(self.bvid)
         print('av' + str(self.aid))
         print(self.playnum)
+
+class UP:
+    def __init__(self, mid):
+        self.mid = mid
+        response = requests.get(GET_INFO_URL,{
+            "mid": mid,
+            "jsonp": "jsonp"
+        }).json()
+        if response['code'] == 0:
+            self.name = response['data']['name']
+            self.level = response['data']['level']
+            self.sign = response['data']['sign']
+        response = requests.get(GET_FAN_URL,{
+            'vmid': mid
+        }).json()
+        if response['code'] == 0:
+            self.follower = response['data']['follower']
+    def show(self):
+        print('========UP主信息=======')
+        print('ID: '+self.name)
+        print('UID: '+str(self.mid))
+        print('等级: lv.'+str(self.level))
+        print('签名: '+self.sign)
+        print('粉丝: '+str(self.follower))
 
 def makeVideoInfoList(uid):
     Sheet = []
@@ -46,6 +72,8 @@ def makeVideoInfoList(uid):
 if __name__ == "__main__":
     #mid = 37663924
     mid = input("UID:")
+    UP_struct = UP(mid)
+    UP_struct.show()
     videolist = makeVideoInfoList(mid)
     sum = 0
     #print(len(videolist))
@@ -53,4 +81,4 @@ if __name__ == "__main__":
         #print(type(v.playnum))
         if isinstance(v.playnum,int):
             sum += v.playnum
-    print(sum)
+    print("当前实时播放量为："+str(sum))
