@@ -1,2 +1,5 @@
-# bilibili_downloader_no_cookies
+# bilibili_own_tools
 learning project
+自编小程序
+Downloader为下载脚本，输入BV号，P数，选择画质，调用powershell使用aria2c下载，并用ffmpeg合并 需要环境变量里有aria2c和ffmpeg
+playnum 为实时UP主播放数获取
