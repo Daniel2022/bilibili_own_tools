@@ -66,18 +66,15 @@ class UP:
         for v in self.__videos_list: #循环加和
             #print(type(v.playnum))
             if isinstance(v.playnum,int):
-                self.__playsum += v.playnum
-        
+                self.__playsum += v.playnum   
     def show(self):
         print('========UP主信息=======')
-        print('ID: '+self.__name)
-        print('UID: '+str(self.__mid))
-        print('等级: lv.'+str(self.__level))
-        print('签名: '+self.__sign)
-        print('粉丝: '+str(self.__follower))
-        print("当前实时播放量为："+str(self.__playsum))
-
-
+        print('ID:\t'+self.__name)
+        print('UID:\t'+str(self.__mid))
+        print('等级:\tlv.'+str(self.__level))
+        print('签名:\t'+self.__sign)
+        print('粉丝:\t'+str(self.__follower))
+        print("播放量:\t"+str(self.__playsum))
 
 if __name__ == "__main__":
     #mid = 37663924
