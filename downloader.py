@@ -72,6 +72,7 @@ def getVedioAndAudioUrls(data,qn=80): #根据画质解析对应URL，有H265则�
         if i >=2:
             break
     if Urllist['Video_avc'] == '':
+        print("无所选画质（或大会员无效）")
         Urllist['Video_avc'] = VideoUrls[0]['baseUrl']
     Urllist['Audio'] = AudioUrl
     return Urllist
