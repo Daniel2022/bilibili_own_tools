@@ -54,6 +54,17 @@ def set_header():
     else:
         print('不存在cookies.sqlite')
 
+def Download_Mission(url,referer,file_name=None):
+    shell = "aria2c.exe \"" + url + "\" --referer=" + referer
+    if file_name:
+        shell += " -o " + file_name
+    subprocess.Popen([r'powershell',shell]).wait()
+
+def title_generator(title:str):
+    return title.replace("\\"," ").replace('/'," ").replace(":"," ")\
+        .replace("*"," ").replace("?"," ").replace("\""," ").replace("<"," ")\
+            .replace(">"," ").replace("|"," ")
+
 class bili_Video:
     def __init__(self,bvid=None,avid=None):
         response = requests.get(GET_VIDEO_INFO_URL, {
@@ -75,15 +86,19 @@ class bili_Video:
             self.view = data['stat']['view']
             self.owner = UP(data['owner']['mid'])
             self.video_list = []
+            count = 0
             for p in data['pages']:
                 self.video_list.append(Videos(avid=self.avid,\
-                    bvid=self.bvid,cid=p['cid']))
+                    bvid=self.bvid,cid=p['cid'],page=count+1,title=self.title))
+                count += 1
 
 class Videos:
-    def __init__(self,avid=None,bvid=None,cid=None):
+    def __init__(self,avid=None,bvid=None,cid=None,page=1,title=None):
         self.avid = avid
         self.bvid = bvid
         self.cid = cid
+        self.page = page
+        self.title = title
     def load(self):
         response = requests.get(GET_VIDEO_DOWNLOAD_URL,{
             'bvid': self.bvid,
@@ -94,6 +109,28 @@ class Videos:
             data = response['data']
             self.duration = data['timelength']
             self.accept_quality = data['accept_quality']
+            self.accept_desc = data['accept_description']
+            self.able = True
+    def Flv_downloader(self,qn=80):
+        if self.able:
+            if qn in self.accept_quality:
+                response = requests.get(GET_VIDEO_DOWNLOAD_URL,{
+                    'bvid': self.bvid,
+                    'cid': self.cid,
+                    'fourk': 1,
+                    'qn': qn
+                },headers=headers).json()
+                if response['code'] == 0:
+                    data = response['data']
+                    url = data['durl'][0]['url']
+                    vformat = data['format']
+                    file_name = title_generator(self.title) + "_" + str(self.page) + "_" + vformat + ".flv"
+                    referer = 'https://www.bilibili.com/video/%s?page=%d' % (self.bvid, self.page)
+                    Download_Mission(url=url,file_name=file_name,referer=referer)
+            else:
+                pass
+        else:
+            pass
 
 class UP:
     def __init__(self, mid):
@@ -121,7 +158,9 @@ class UP:
 
 if __name__ == "__main__":
     #print(cookie_loader())
-    #set_header()
+    set_header()
     #print(headers)
-    v = bili_Video(bvid='BV1SQ4y1P7XP')
-    v.owner.show()
+    v = bili_Video(bvid='BV19p4y1U7vp')
+    #v.owner.show()
+    v.video_list[0].load()
+    v.video_list[0].Flv_downloader(qn=120)
