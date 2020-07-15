@@ -55,16 +55,21 @@ def set_header():
         print('不存在cookies.sqlite')
 
 def Download_Mission(url,referer,file_name=None):
-    shell = "aria2c.exe \"" + url + "\" --referer=" + referer
+    shell = "aria2c.exe -c true \"" + url + "\" --referer=" + referer
     if file_name:
         shell += " -o \"" + file_name + "\""
-    print(shell)
     subprocess.Popen([r'powershell',shell]).wait()
 
 def title_generator(title:str):
     return title.replace("\\"," ").replace('/'," ").replace(":"," ")\
         .replace("*"," ").replace("?"," ").replace("\""," ").replace("<"," ")\
             .replace(">"," ").replace("|"," ")
+
+def FFmpegMission(VideoName,AudioName,Outputname):
+    shell = "ffmpeg -i \"" + VideoName + "\" -i \"" + AudioName + \
+        "\" -c:v copy -c:a copy -strict experimental " + "\"" + Outputname + "\""
+    print(shell)
+    subprocess.Popen([r'powershell',shell]).wait()
 
 class bili_Video:
     def __init__(self,bvid=None,avid=None):
@@ -159,6 +164,21 @@ class Videos:
                 pass
         else:
             pass
+    def Dash_downloader(self,codecid=7):
+        filetitle = title_generator(self.title) + "_" + str(self.page)
+        AudioName = filetitle + "_" + "Audio.aac"
+        Download_Mission(self.tmp_DashUrl.AUrl,self.referer,AudioName)
+        if codecid == 7:
+            VideoName = filetitle + "_Video_AVC.mp4"
+            Download_Mission(self.tmp_DashUrl.AVC_Url,self.referer,VideoName)
+            Outputname = filetitle + "_AVC.mp4"
+        elif codecid == 12 and self.tmp_DashUrl.HEVC:
+            VideoName = filetitle + "_Video_HEV.mp4"
+            Download_Mission(self.tmp_DashUrl.HEV_Url,self.referer,VideoName)
+            Outputname = filetitle + "_HEV.mp4"
+        else:
+            pass
+        FFmpegMission(VideoName,AudioName,Outputname)
 
 class DashUrlStruct:
     def __init__(self,AUrl,qn):
@@ -201,10 +221,12 @@ class UP:
         print('粉丝:\t'+str(self.__follower))
 
 if __name__ == "__main__":
+    #测试代码
     #print(cookie_loader())
     set_header()
     #print(headers)
     v = bili_Video(bvid='BV1iJ411H793')
     #v.owner.show()
     v.video_list[0].load()
-    v.video_list[0].Flv_downloader(qn=112)
+    v.video_list[0].Dash_URL_extractor(qn=112)
+    v.video_list[0].Dash_downloader()
