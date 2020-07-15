@@ -9,6 +9,17 @@ GET_VIDEO_DOWNLOAD_URL = "https://api.bilibili.com/x/player/playurl"
 GET_INFO_URL = "https://api.bilibili.com/x/space/acc/info"
 GET_FAN_URL = "https://api.bilibili.com/x/relation/stat"
 
+#主程序状态
+NORMAL = 0
+ADD_ITEM = 1
+VideoInfo = 2
+SELECT_QUALITY = 3
+SELECT_CONTAINER = 4
+FLV_DOWNLOADING = 5
+SELECT_FORMAT = 6
+AVC_DOWNLOADING = 7
+HEV_DOWNLOADING = 8
+
 headers = {
     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
     "accept-encoding": "gzip, deflate, br",
@@ -59,9 +70,10 @@ def set_header():
         print('不存在cookies.sqlite')
 
 def Download_Mission(url,referer,file_name=None):
-    shell = "aria2c.exe -c true \"" + url + "\" --referer=" + referer
+    shell = "aria2c.exe --continue=true \"" + url + "\" --referer=" + referer
     if file_name:
         shell += " -o \"" + file_name + "\""
+    print(shell)
     sbp = subprocess.Popen(shell,shell=True)
     sbp.wait()
     if sbp.returncode:
@@ -74,12 +86,15 @@ def title_generator(title:str):
 
 def FFmpegMission(VideoName,AudioName,Outputname):
     shell = "ffmpeg -i \"" + VideoName + "\" -i \"" + AudioName + \
-        "\" -c:v copy -c:a copy -strict experimental " + "\"" + Outputname + "\""
-    print(shell)
+        "\" -c:v copy -c:a copy -strict experimental " + "\"" + Outputname + "\" -n"
+    #print(shell)
     sbp = subprocess.Popen(shell,shell=True)
     sbp.wait()
     if sbp.returncode:
         raise MannualError(2)
+    else:
+        subprocess.Popen("del \"" + VideoName + "\"", shell=True).wait()
+        subprocess.Popen("del \"" + AudioName + "\"", shell=True).wait()
 
 class bili_Video:
     def __init__(self,bvid=None,avid=None):
@@ -105,18 +120,19 @@ class bili_Video:
             count = 0
             for p in data['pages']:
                 self.video_list.append(Videos(avid=self.avid,\
-                    bvid=self.bvid,cid=p['cid'],page=count+1,title=self.title))
+                    bvid=self.bvid,cid=p['cid'],page=count+1,title=self.title,subtitle=p['part']))
                 count += 1
         else:
             raise MannualError(3)
 
 class Videos:
-    def __init__(self,avid=None,bvid=None,cid=None,page=1,title=None):
+    def __init__(self,avid=None,bvid=None,cid=None,page=1,title=None,subtitle=None):
         self.avid = avid
         self.bvid = bvid
         self.cid = cid
         self.page = page
         self.title = title
+        self.subtitle = subtitle
         self.referer = 'https://www.bilibili.com/video/%s?page=%d' % (self.bvid, self.page)
     def load(self):
         response = requests.get(GET_VIDEO_DOWNLOAD_URL,{
@@ -197,6 +213,7 @@ class Videos:
         else:
             raise MannualError(6)
         FFmpegMission(VideoName,AudioName,Outputname)
+        del self.tmp_DashUrl
 
 class DashUrlStruct:
     def __init__(self,AUrl,qn):
@@ -244,11 +261,58 @@ class UP:
 
 if __name__ == "__main__":
     #测试代码
-    #print(cookie_loader())
+    """#print(cookie_loader())
     set_header()
     #print(headers)
     v = bili_Video(bvid='BV1iJ411H793')
     #v.owner.show()
     v.video_list[0].load()
     v.video_list[0].Dash_URL_extractor(qn=112)
-    v.video_list[0].Dash_downloader()
+    v.video_list[0].Dash_downloader()"""
+    
+    print("Bilibili downloader")
+    PATH = os.environ['PATH'].split(os.pathsep)
+    Aria2_Exist = False
+    FFmpeg_Exist = False
+    for pathroute in PATH:
+        Aria2_candidate = os.path.join(pathroute,'aria2c.exe')
+        FFmpeg_candidate = os.path.join(pathroute,'ffmpeg.exe')
+        if os.path.isfile(Aria2_candidate) and not Aria2_Exist:
+            print("检测到Aria2")
+            Aria2_Exist = True
+        if os.path.isfile(FFmpeg_candidate) and not FFmpeg_Exist:
+            print("检测到ffmpeg")
+            FFmpeg_Exist = True
+        if Aria2_Exist and FFmpeg_Exist:
+            break
+    
+    if Aria2_Exist and FFmpeg_Exist:
+        pass
+    else:
+        os._exit()
+    
+    item_group = []
+    STATE = NORMAL
+
+    while(True):
+        try:
+            if STATE == NORMAL:
+                pass
+            elif STATE == ADD_ITEM:
+                pass
+            elif STATE == VideoInfo:
+                pass
+            elif STATE == SELECT_QUALITY:
+                pass
+            elif STATE == SELECT_CONTAINER:
+                pass
+            elif STATE == FLV_DOWNLOADING:
+                pass
+            elif STATE == SELECT_FORMAT:
+                pass
+            elif STATE == AVC_DOWNLOADING:
+                pass
+            elif STATE == HEV_DOWNLOADING:
+                pass
+        except MannualError as e:
+            pass
