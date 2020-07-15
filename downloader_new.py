@@ -99,6 +99,7 @@ class Videos:
         self.cid = cid
         self.page = page
         self.title = title
+        self.referer = 'https://www.bilibili.com/video/%s?page=%d' % (self.bvid, self.page)
     def load(self):
         response = requests.get(GET_VIDEO_DOWNLOAD_URL,{
             'bvid': self.bvid,
@@ -110,9 +111,9 @@ class Videos:
             self.duration = data['timelength']
             self.accept_quality = data['accept_quality']
             self.accept_desc = data['accept_description']
-            self.able = True
+            self.AbleToDownload = True
     def Flv_downloader(self,qn=80):
-        if self.able:
+        if self.AbleToDownload:
             if qn in self.accept_quality:
                 response = requests.get(GET_VIDEO_DOWNLOAD_URL,{
                     'bvid': self.bvid,
@@ -125,10 +126,52 @@ class Videos:
                     url = data['durl'][0]['url']
                     vformat = data['format']
                     file_name = title_generator(self.title) + "_" + str(self.page) + "_" + vformat + ".flv"
-                    referer = 'https://www.bilibili.com/video/%s?page=%d' % (self.bvid, self.page)
-                    Download_Mission(url=url,file_name=file_name,referer=referer)
+                    Download_Mission(url=url,file_name=file_name,referer=self.referer)
             else:
                 pass
+        else:
+            pass
+    def Dash_URL_extractor(self,qn=80):
+        if self.AbleToDownload:
+            if qn in self.accept_quality:
+                response = requests.get(GET_VIDEO_DOWNLOAD_URL,{
+                    'bvid': self.bvid,
+                    'cid': self.cid,
+                    'fourk': 1,
+                    'qn': qn,
+                    'fnval': 16
+                },headers=headers).json()
+                if response['code'] == 0:
+                    data = response['data']
+                    AUrl = data['dash']['audio'][0]['baseUrl']
+                    self.tmp_DashUrl = DashUrlStruct(AUrl,qn)
+                    counter = 0
+                    for v in data['dash']['video']:
+                        if v['id'] == qn:
+                            self.tmp_DashUrl.AddVideoUrl(VUrl=v['baseUrl'],codecid=v['codecid'])
+                            counter += 1
+                        else:
+                            continue
+                        if counter >= 2:
+                            break
+            else:
+                pass
+        else:
+            pass
+
+class DashUrlStruct:
+    def __init__(self,AUrl,qn):
+        self.AUrl = AUrl
+        self.HEVC = False
+        self.qn = qn
+    def AddVideoUrl(self,VUrl,codecid=7):
+        if codecid == 12:
+            self.HEV_Url = VUrl
+            self.HEVC = True
+            self.ready = True
+        elif codecid == 7:
+            self.AVC_Url = VUrl
+            self.ready = True
         else:
             pass
 
