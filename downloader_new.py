@@ -22,6 +22,10 @@ headers = {
     "upgrade-insecure-requests": '1'
 }
 
+class MannualError(RuntimeError):
+    def __init__(self,M):
+        self.ErrorCode = M
+
 def cookie_loader(cookiefile="cookies.sqlite"):
     #来自soimort/you-get sqlite格式火狐cookies处理
     import sqlite3, shutil, tempfile
@@ -58,7 +62,10 @@ def Download_Mission(url,referer,file_name=None):
     shell = "aria2c.exe -c true \"" + url + "\" --referer=" + referer
     if file_name:
         shell += " -o \"" + file_name + "\""
-    subprocess.Popen([r'powershell',shell]).wait()
+    sbp = subprocess.Popen(shell,shell=True)
+    sbp.wait()
+    if sbp.returncode:
+        raise MannualError(1)
 
 def title_generator(title:str):
     return title.replace("\\"," ").replace('/'," ").replace(":"," ")\
@@ -69,7 +76,10 @@ def FFmpegMission(VideoName,AudioName,Outputname):
     shell = "ffmpeg -i \"" + VideoName + "\" -i \"" + AudioName + \
         "\" -c:v copy -c:a copy -strict experimental " + "\"" + Outputname + "\""
     print(shell)
-    subprocess.Popen([r'powershell',shell]).wait()
+    sbp = subprocess.Popen(shell,shell=True)
+    sbp.wait()
+    if sbp.returncode:
+        raise MannualError(2)
 
 class bili_Video:
     def __init__(self,bvid=None,avid=None):
@@ -97,6 +107,8 @@ class bili_Video:
                 self.video_list.append(Videos(avid=self.avid,\
                     bvid=self.bvid,cid=p['cid'],page=count+1,title=self.title))
                 count += 1
+        else:
+            raise MannualError(3)
 
 class Videos:
     def __init__(self,avid=None,bvid=None,cid=None,page=1,title=None):
@@ -118,6 +130,8 @@ class Videos:
             self.accept_quality = data['accept_quality']
             self.accept_desc = data['accept_description']
             self.AbleToDownload = True
+        else:
+            raise MannualError(3)
     def Flv_downloader(self,qn=80):
         if self.AbleToDownload:
             if qn in self.accept_quality:
@@ -133,10 +147,12 @@ class Videos:
                     vformat = data['format']
                     file_name = title_generator(self.title) + "_" + str(self.page) + "_" + vformat + ".flv"
                     Download_Mission(url=url,file_name=file_name,referer=self.referer)
+                else:
+                    raise MannualError(3)
             else:
-                pass
+                raise MannualError(5)
         else:
-            pass
+            raise MannualError(4)
     def Dash_URL_extractor(self,qn=80):
         if self.AbleToDownload:
             if qn in self.accept_quality:
@@ -160,10 +176,12 @@ class Videos:
                             continue
                         if counter >= 2:
                             break
+                else:
+                    raise MannualError(3)
             else:
-                pass
+                raise MannualError(5)
         else:
-            pass
+            raise MannualError(4)
     def Dash_downloader(self,codecid=7):
         filetitle = title_generator(self.title) + "_" + str(self.page)
         AudioName = filetitle + "_" + "Audio.aac"
@@ -177,7 +195,7 @@ class Videos:
             Download_Mission(self.tmp_DashUrl.HEV_Url,self.referer,VideoName)
             Outputname = filetitle + "_HEV.mp4"
         else:
-            pass
+            raise MannualError(6)
         FFmpegMission(VideoName,AudioName,Outputname)
 
 class DashUrlStruct:
@@ -207,11 +225,15 @@ class UP:
             self.__name = response['data']['name']
             self.__level = response['data']['level']
             self.__sign = response['data']['sign']
+        else:
+            raise MannualError(3)
         response = requests.get(GET_FAN_URL,{
             'vmid': mid
         }).json()
         if response['code'] == 0:
             self.__follower = response['data']['follower']
+        else:
+            raise MannualError(3)
     def show(self):
         print('========UP主信息=======')
         print('ID:\t'+self.__name)

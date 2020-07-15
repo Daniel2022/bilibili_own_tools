@@ -1,0 +1,6 @@
+1: Aria2 Error
+2: FFmpeg Error
+3: API get Error
+4: Video not Load()
+5: Not accpet quality
+6: Invalid Para
