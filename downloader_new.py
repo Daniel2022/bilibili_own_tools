@@ -57,7 +57,8 @@ def set_header():
 def Download_Mission(url,referer,file_name=None):
     shell = "aria2c.exe \"" + url + "\" --referer=" + referer
     if file_name:
-        shell += " -o " + file_name
+        shell += " -o \"" + file_name + "\""
+    print(shell)
     subprocess.Popen([r'powershell',shell]).wait()
 
 def title_generator(title:str):
@@ -105,7 +106,7 @@ class Videos:
             'bvid': self.bvid,
             'cid': self.cid,
             'fourk': 1
-        }).json()
+        },headers=headers).json()
         if response['code'] == 0:
             data = response['data']
             self.duration = data['timelength']
@@ -203,7 +204,7 @@ if __name__ == "__main__":
     #print(cookie_loader())
     set_header()
     #print(headers)
-    v = bili_Video(bvid='BV19p4y1U7vp')
+    v = bili_Video(bvid='BV1iJ411H793')
     #v.owner.show()
     v.video_list[0].load()
-    v.video_list[0].Flv_downloader(qn=120)
+    v.video_list[0].Flv_downloader(qn=112)
