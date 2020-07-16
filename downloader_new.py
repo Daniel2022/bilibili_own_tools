@@ -3,22 +3,12 @@ import json
 import subprocess
 import os
 import http.cookiejar
+import re
 
 GET_VIDEO_INFO_URL = "https://api.bilibili.com/x/web-interface/view"
 GET_VIDEO_DOWNLOAD_URL = "https://api.bilibili.com/x/player/playurl"
 GET_INFO_URL = "https://api.bilibili.com/x/space/acc/info"
 GET_FAN_URL = "https://api.bilibili.com/x/relation/stat"
-
-#主程序状态
-NORMAL = 0
-ADD_ITEM = 1
-VideoInfo = 2
-SELECT_QUALITY = 3
-SELECT_CONTAINER = 4
-FLV_DOWNLOADING = 5
-SELECT_FORMAT = 6
-AVC_DOWNLOADING = 7
-HEV_DOWNLOADING = 8
 
 headers = {
     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
@@ -36,6 +26,13 @@ headers = {
 class MannualError(RuntimeError):
     def __init__(self,M):
         self.ErrorCode = M
+
+def isNumber(keyword):
+    try:
+        int(keyword)
+        return True
+    except ValueError:
+        return False   
 
 def cookie_loader(cookiefile="cookies.sqlite"):
     #来自soimort/you-get sqlite格式火狐cookies处理
@@ -124,6 +121,12 @@ class bili_Video:
                 count += 1
         else:
             raise MannualError(3)
+    def show(self):
+        string = "%s\nAV号：%s\nBV号：%s\nP数：%dUP主：%s\n" \
+            % (self.title,self.avid,self.bvid,self.pages,self.owner.name)
+        for i in range(self.pages):
+            string += "P%d.%s\n" % (i+1,self.video_list[i].subtitle)
+        return string
 
 class Videos:
     def __init__(self,avid=None,bvid=None,cid=None,page=1,title=None,subtitle=None):
@@ -214,6 +217,15 @@ class Videos:
             raise MannualError(6)
         FFmpegMission(VideoName,AudioName,Outputname)
         del self.tmp_DashUrl
+    def show(self):
+        string = ''
+        if self.AbleToDownload:
+            #string += "可用画质\n"
+            for i in range(len(self.accept_quality)):
+                string += "%d.%s\n" % (i+1,self.accept_desc[i])
+        else:
+            raise MannualError(4)
+        return string
 
 class DashUrlStruct:
     def __init__(self,AUrl,qn):
@@ -239,7 +251,7 @@ class UP:
             "jsonp": "jsonp"
         }).json()
         if response['code'] == 0:
-            self.__name = response['data']['name']
+            self.name = response['data']['name']
             self.__level = response['data']['level']
             self.__sign = response['data']['sign']
         else:
@@ -253,23 +265,105 @@ class UP:
             raise MannualError(3)
     def show(self):
         print('========UP主信息=======')
-        print('ID:\t'+self.__name)
+        print('ID:\t'+self.name)
         print('UID:\t'+str(self.__mid))
         print('等级:\tlv.'+str(self.__level))
         print('签名:\t'+self.__sign)
         print('粉丝:\t'+str(self.__follower))
 
+"""交互部分"""
+
+#主程序状态
+NORMAL = 0
+ADD_ITEM = 1
+VideoInfo = 2
+SELECT_QUALITY = 3
+SELECT_CONTAINER = 4
+FLV_DOWNLOADING = 5
+SELECT_FORMAT = 6
+AVC_DOWNLOADING = 7
+HEV_DOWNLOADING = 8
+
+STATES = 0
+
+item_group = []
+STATE = NORMAL
+
+av_pattern = re.compile(r'av[0-9]+')
+BV_pattern = re.compile(r'BV[0-9A-Za-z]+')
+
+class StateMachine:
+    def __init__(self,state=NORMAL):
+        self.statetag = state
+        self.SelectedIndex = 0
+        self.SelectedPIndex = 0
+    def SetState(self,state):
+        self.statetag = state
+    def switch(self,keyword):
+        pass
+    def display(self):
+        if self.statetag == NORMAL:
+            print("BiliVideo in list")
+            index = 1
+            for V in item_group:
+                print("[%d] %s" % (index, V.title))
+                index += 1
+            print("Add [A]")
+            print("Select a video [Enter num 1-%d][default: %d] " % (index,index))
+        elif self.statetag == VideoInfo:
+            print("Selected Video Info:")
+            print(item_group[self.SelectedIndex].show())
+            print("Back [X] ")
+            print("Choose Which Page to Download [1-%d][default 1]" % (item_group[self.SelectedIndex].pages))
+        elif self.statetag == ADD_ITEM:
+            print("Enter a AV or BV code: Back [X]")
+        elif self.statetag == SELECT_QUALITY:
+            print("选择可用画质")
+            print(item_group[self.SelectedIndex].video_list[self.SelectedPIndex].show())
+            print("Back [X]")
+            print("Choose which quality  [1-%d][default 1]" \
+                % (len(item_group[self.SelectedIndex].video_list[self.SelectedPIndex].accept_quality)))
+        elif self.statetag == SELECT_CONTAINER:
+            print("选择封装【1】FLV【2】MP4")
+        elif self.statetag == FLV_DOWNLOADING:
+            print("下载FLV封装……")
+        elif self.statetag == SELECT_FORMAT:
+            print("检测到该P有HEVC格式视频更省空间【Y/N】[default Y]")
+        elif self.statetag == AVC_DOWNLOADING:
+            print("下载MP4封装AVC编码……")
+        elif self.statetag == HEV_DOWNLOADING:
+            print("下载MP4封装HEVC编码……")
+        else:
+            pass
+    def action(self):
+        pass
+
+def state_switcher(keyword,AccpetMaxInt=1):
+    global STATES, ProcessIndex
+    if STATES == NORMAL:
+        if isNumber(keyword):
+            ProcessIndex = int(keyword)-1
+            STATES = VideoInfo
+        elif keyword.lower() == 'a':
+            STATES = ADD_ITEM
+    elif STATES == ADD_ITEM:
+        pass
+            
+
 if __name__ == "__main__":
     #测试代码
-    """#print(cookie_loader())
+    
+    #print(cookie_loader())
     set_header()
     #print(headers)
-    v = bili_Video(bvid='BV1iJ411H793')
+    v = bili_Video(bvid='BV13z4y1d79P')
     #v.owner.show()
     v.video_list[0].load()
-    v.video_list[0].Dash_URL_extractor(qn=112)
-    v.video_list[0].Dash_downloader()"""
+    v.video_list[0].Dash_URL_extractor(qn=116)
+    v.video_list[0].Dash_downloader(12)
+    #v.video_list[0].Flv_downloader(116)
     
+    """
     print("Bilibili downloader")
     PATH = os.environ['PATH'].split(os.pathsep)
     Aria2_Exist = False
@@ -290,29 +384,36 @@ if __name__ == "__main__":
         pass
     else:
         os._exit()
-    
-    item_group = []
-    STATE = NORMAL
 
     while(True):
         try:
-            if STATE == NORMAL:
+            if STATES == NORMAL:
+                print("BiliVideo in list")
+                index = 1
+                for V in item_group:
+                    print("[%d] %s" % (index, V.title))
+                    index += 1
+                print("Enter [a] to Add")
+                state_switcher(input("Select a video [Enter num 1-%d][default: %d] [" % (index,index)),index)
+            elif STATES == ADD_ITEM:
+                print("Enter av or BV code:")
+                print("Enter [x] to Back")
+                keyword = input()
+                #state_switcher()
+            elif STATES == VideoInfo:
                 pass
-            elif STATE == ADD_ITEM:
+            elif STATES == SELECT_QUALITY:
                 pass
-            elif STATE == VideoInfo:
+            elif STATES == SELECT_CONTAINER:
                 pass
-            elif STATE == SELECT_QUALITY:
+            elif STATES == FLV_DOWNLOADING:
                 pass
-            elif STATE == SELECT_CONTAINER:
+            elif STATES == SELECT_FORMAT:
                 pass
-            elif STATE == FLV_DOWNLOADING:
+            elif STATES == AVC_DOWNLOADING:
                 pass
-            elif STATE == SELECT_FORMAT:
-                pass
-            elif STATE == AVC_DOWNLOADING:
-                pass
-            elif STATE == HEV_DOWNLOADING:
+            elif STATES == HEV_DOWNLOADING:
                 pass
         except MannualError as e:
             pass
+"""
