@@ -4,6 +4,7 @@ import subprocess
 import os
 import http.cookiejar
 import re
+import pickle
 
 GET_VIDEO_INFO_URL = "https://api.bilibili.com/x/web-interface/view"
 GET_VIDEO_DOWNLOAD_URL = "https://api.bilibili.com/x/player/playurl"
@@ -70,7 +71,6 @@ def Download_Mission(url,referer,file_name=None):
     shell = "aria2c.exe --continue=true \"" + url + "\" --referer=" + referer
     if file_name:
         shell += " -o \"" + file_name + "\""
-    print(shell)
     sbp = subprocess.Popen(shell,shell=True)
     sbp.wait()
     if sbp.returncode:
@@ -304,9 +304,9 @@ class StateMachine:
     def display(self):
         if self.statetag == NORMAL:
             print("BiliVideo in list")
-            index = 1
+            index = 0
             for V in item_group:
-                print("[%d] %s" % (index, V.title))
+                print("[%d] %s" % (index+1, V.title))
                 index += 1
             print("Add [A]")
             print("Select a video [Enter num 1-%d][default: %d] " % (index,index))
@@ -343,13 +343,14 @@ class StateMachine:
             #while not self.keyword.lower() == 'x':
             if av_pattern.match(self.keyword):
                 avid = re.search(r'[0-9]+',self.keyword)
-                print(avid.group())
                 item_group.append(bili_Video(avid=int(avid.group(0))))
-                print("已添加av%s" % avid)
+                print("已添加av%s" % avid.group(0))
             elif BV_pattern.match(self.keyword):
                 bvid = BV_pattern.match(self.keyword)
                 item_group.append(bili_Video(bvid=bvid.group(0)))
-                print("已添加%s" % bvid)
+                print("已添加%s" % bvid.group(0))
+            elif self.keyword.lower() == 'd':
+                item_group.pop(len(item_group)-1)
             else:
                 pass
         elif self.statetag == VideoInfo:
@@ -359,7 +360,6 @@ class StateMachine:
         elif self.statetag == SELECT_CONTAINER:
             self.keyword = input()
         elif self.statetag == FLV_DOWNLOADING:
-            print(type(self.SelectedQuality))
             item_group[self.SelectedIndex].video_list[self.SelectedPIndex].Flv_downloader(self.SelectedQuality)
         elif self.statetag == SELECT_FORMAT:
             self.keyword = input()
@@ -370,6 +370,11 @@ class StateMachine:
         else:
             pass
     def switch(self):
+        if self.keyword == 'q':
+            savedata = open('savedata','wb')
+            pickle.dump(item_group,savedata)
+            savedata.close()
+            os._exit(0)
         if self.statetag == NORMAL:
             if self.keyword.lower() == 'a':
                 self.statetag = ADD_ITEM
@@ -396,7 +401,6 @@ class StateMachine:
                 self.statetag = VideoInfo
             elif isNumber(self.keyword):
                 self.SelectedQuality = item_group[self.SelectedIndex].video_list[self.SelectedPIndex].accept_quality[int(self.keyword)-1]
-                print(self.SelectedQuality)
                 self.statetag = SELECT_CONTAINER
             else:
                 pass
@@ -406,7 +410,6 @@ class StateMachine:
                 self.statetag = SELECT_QUALITY
                 self.SelectedQuality = None
             elif isNumber(self.keyword):
-                print(int(self.keyword))
                 if int(self.keyword) == 1:
                     self.statetag = FLV_DOWNLOADING
                 elif int(self.keyword) == 2:
@@ -418,7 +421,7 @@ class StateMachine:
                 else:
                     pass
         elif self.statetag == SELECT_FORMAT:
-            if self.keyword.lowe() == 'x':
+            if self.keyword.lower() == 'x':
                 self.statetag = SELECT_CONTAINER
             elif self.keyword.lower() == 'y':
                 self.statetag = HEV_DOWNLOADING
@@ -430,20 +433,10 @@ class StateMachine:
             self.statetag == FLV_DOWNLOADING:
             self.statetag = VideoInfo
         else:
-            pass
-def state_switcher(keyword,AccpetMaxInt=1):
-    global STATES, ProcessIndex
-    if STATES == NORMAL:
-        if isNumber(keyword):
-            ProcessIndex = int(keyword)-1
-            STATES = VideoInfo
-        elif keyword.lower() == 'a':
-            STATES = ADD_ITEM
-    elif STATES == ADD_ITEM:
-        pass
-            
+            pass            
 
 if __name__ == "__main__":
+    
     #测试代码
     """
     #print(cookie_loader())
@@ -456,8 +449,6 @@ if __name__ == "__main__":
     v.video_list[0].Dash_downloader(12)
     #v.video_list[0].Flv_downloader(116)
     """
-    
-    
     print("Bilibili downloader")
     PATH = os.environ['PATH'].split(os.pathsep)
     Aria2_Exist = False
@@ -478,6 +469,17 @@ if __name__ == "__main__":
         pass
     else:
         os._exit()
+
+    if not os.path.isfile('savedata'):
+        f = open('savedata',mode='wb')
+        f.close()
+        savedata = open('savedata','wb')
+        pickle.dump([],savedata)
+        savedata.close()
+    else:
+        savedata = open('savedata','rb')
+        item_group.extend(pickle.load(savedata))
+        savedata.close()
 
     set_header()
     State = StateMachine()
