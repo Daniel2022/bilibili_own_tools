@@ -289,7 +289,7 @@ STATES = 0
 item_group = []
 STATE = NORMAL
 
-av_pattern = re.compile(r'av[0-9]+')
+av_pattern = re.compile(r'av[0-9]+',flags=re.I)
 BV_pattern = re.compile(r'BV[0-9A-Za-z]+')
 
 class StateMachine:
@@ -297,10 +297,10 @@ class StateMachine:
         self.statetag = state
         self.SelectedIndex = 0
         self.SelectedPIndex = 0
+        self.keyword = None
+        self.SelectedQuality = None
     def SetState(self,state):
         self.statetag = state
-    def switch(self,keyword):
-        pass
     def display(self):
         if self.statetag == NORMAL:
             print("BiliVideo in list")
@@ -336,8 +336,101 @@ class StateMachine:
         else:
             pass
     def action(self):
-        pass
-
+        if self.statetag == NORMAL:
+            self.keyword = input()
+        elif self.statetag == ADD_ITEM:
+            self.keyword = input()
+            #while not self.keyword.lower() == 'x':
+            if av_pattern.match(self.keyword):
+                avid = re.search(r'[0-9]+',self.keyword)
+                print(avid.group())
+                item_group.append(bili_Video(avid=int(avid.group(0))))
+                print("已添加av%s" % avid)
+            elif BV_pattern.match(self.keyword):
+                bvid = BV_pattern.match(self.keyword)
+                item_group.append(bili_Video(bvid=bvid.group(0)))
+                print("已添加%s" % bvid)
+            else:
+                pass
+        elif self.statetag == VideoInfo:
+            self.keyword = input()
+        elif self.statetag == SELECT_QUALITY:
+            self.keyword = input()
+        elif self.statetag == SELECT_CONTAINER:
+            self.keyword = input()
+        elif self.statetag == FLV_DOWNLOADING:
+            print(type(self.SelectedQuality))
+            item_group[self.SelectedIndex].video_list[self.SelectedPIndex].Flv_downloader(self.SelectedQuality)
+        elif self.statetag == SELECT_FORMAT:
+            self.keyword = input()
+        elif self.statetag == AVC_DOWNLOADING:
+            item_group[self.SelectedIndex].video_list[self.SelectedPIndex].Dash_downloader()
+        elif self.statetag == HEV_DOWNLOADING:
+            item_group[self.SelectedIndex].video_list[self.SelectedPIndex].Dash_downloader(12)
+        else:
+            pass
+    def switch(self):
+        if self.statetag == NORMAL:
+            if self.keyword.lower() == 'a':
+                self.statetag = ADD_ITEM
+            elif isNumber(self.keyword):
+                self.SelectedIndex = int(self.keyword)-1
+                self.statetag = VideoInfo
+            else:
+                pass
+            self.keyword = ""
+        elif self.statetag == ADD_ITEM:
+            if self.keyword.lower() == 'x':
+                self.statetag = NORMAL
+        elif self.statetag == VideoInfo:
+            if self.keyword.lower() == 'x':
+                self.statetag = NORMAL
+            elif isNumber(self.keyword):
+                self.SelectedPIndex = int(self.keyword)-1
+                item_group[self.SelectedIndex].video_list[self.SelectedPIndex].load()
+                self.statetag = SELECT_QUALITY
+            else:
+                pass
+        elif self.statetag == SELECT_QUALITY:
+            if self.keyword.lower() == 'x':
+                self.statetag = VideoInfo
+            elif isNumber(self.keyword):
+                self.SelectedQuality = item_group[self.SelectedIndex].video_list[self.SelectedPIndex].accept_quality[int(self.keyword)-1]
+                print(self.SelectedQuality)
+                self.statetag = SELECT_CONTAINER
+            else:
+                pass
+        elif self.statetag == SELECT_CONTAINER:
+            #print(self.statetag)
+            if self.keyword.lower() == 'x':
+                self.statetag = SELECT_QUALITY
+                self.SelectedQuality = None
+            elif isNumber(self.keyword):
+                print(int(self.keyword))
+                if int(self.keyword) == 1:
+                    self.statetag = FLV_DOWNLOADING
+                elif int(self.keyword) == 2:
+                    item_group[self.SelectedIndex].video_list[self.SelectedPIndex].Dash_URL_extractor(self.SelectedQuality)
+                    if item_group[self.SelectedIndex].video_list[self.SelectedPIndex].tmp_DashUrl.HEVC:
+                        self.statetag = SELECT_FORMAT
+                    else:
+                        self.statetag = AVC_DOWNLOADING
+                else:
+                    pass
+        elif self.statetag == SELECT_FORMAT:
+            if self.keyword.lowe() == 'x':
+                self.statetag = SELECT_CONTAINER
+            elif self.keyword.lower() == 'y':
+                self.statetag = HEV_DOWNLOADING
+            elif self.keyword.lower() == 'n':
+                self.statetag = AVC_DOWNLOADING
+            else:
+                pass
+        elif self.statetag == AVC_DOWNLOADING or self.statetag == HEV_DOWNLOADING or \
+            self.statetag == FLV_DOWNLOADING:
+            self.statetag = VideoInfo
+        else:
+            pass
 def state_switcher(keyword,AccpetMaxInt=1):
     global STATES, ProcessIndex
     if STATES == NORMAL:
@@ -352,7 +445,7 @@ def state_switcher(keyword,AccpetMaxInt=1):
 
 if __name__ == "__main__":
     #测试代码
-    
+    """
     #print(cookie_loader())
     set_header()
     #print(headers)
@@ -362,8 +455,9 @@ if __name__ == "__main__":
     v.video_list[0].Dash_URL_extractor(qn=116)
     v.video_list[0].Dash_downloader(12)
     #v.video_list[0].Flv_downloader(116)
-    
     """
+    
+    
     print("Bilibili downloader")
     PATH = os.environ['PATH'].split(os.pathsep)
     Aria2_Exist = False
@@ -385,35 +479,12 @@ if __name__ == "__main__":
     else:
         os._exit()
 
+    set_header()
+    State = StateMachine()
     while(True):
         try:
-            if STATES == NORMAL:
-                print("BiliVideo in list")
-                index = 1
-                for V in item_group:
-                    print("[%d] %s" % (index, V.title))
-                    index += 1
-                print("Enter [a] to Add")
-                state_switcher(input("Select a video [Enter num 1-%d][default: %d] [" % (index,index)),index)
-            elif STATES == ADD_ITEM:
-                print("Enter av or BV code:")
-                print("Enter [x] to Back")
-                keyword = input()
-                #state_switcher()
-            elif STATES == VideoInfo:
-                pass
-            elif STATES == SELECT_QUALITY:
-                pass
-            elif STATES == SELECT_CONTAINER:
-                pass
-            elif STATES == FLV_DOWNLOADING:
-                pass
-            elif STATES == SELECT_FORMAT:
-                pass
-            elif STATES == AVC_DOWNLOADING:
-                pass
-            elif STATES == HEV_DOWNLOADING:
-                pass
-        except MannualError as e:
+            State.display()
+            State.action()
+            State.switch()
+        except MannualError:
             pass
-"""
