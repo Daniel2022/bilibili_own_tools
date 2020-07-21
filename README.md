@@ -13,3 +13,7 @@ It is a learning project<br>
     更新的下载脚本，待完善
     计划支持稿件信息获取，多种封装下载
 迁移至[bilibili-downloader-py](https://github.com/Daniel2022/bilibili-downloader-py)
+## coin.py
+    投硬币脚本
+    随机向5个稿件投5个硬币
+    （懒人升级用）

@@ -56,9 +56,9 @@ def set_header():
         print('已加载cookies')
     else:
         print('不存在cookies.sqlite')
+        os._exit(0)
 
 def addcoin(aid,num,csrf,url,headers):
-    print(1)
     res = requests.post(url=url,data={
         'aid': aid,
         'multiply': num,
