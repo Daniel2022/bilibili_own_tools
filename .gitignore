@@ -138,3 +138,6 @@ savedata
 
 #cookie
 *.sqlite
+cookie.txt
+
+ff.txt
