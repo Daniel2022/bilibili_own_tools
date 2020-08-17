@@ -1,7 +1,8 @@
 import requests
 import json
 
-GET_NUM_URL = "https://space.bilibili.com/ajax/member/getSubmitVideos"
+#GET_NUM_URL = "https://space.bilibili.com/ajax/member/getSubmitVideos"
+GET_NUM_URL = "https://api.bilibili.com/x/space/arc/search"
 GET_INFO_URL = "https://api.bilibili.com/x/space/acc/info"
 GET_FAN_URL = "https://api.bilibili.com/x/relation/stat"
 
@@ -22,26 +23,27 @@ class UP:
         Sheet = []
         response = requests.get(GET_NUM_URL, { #第一次尝试get，获取页数（每页100个视频）
             "mid": uid,
-            'pagesize': 100,
-            'tid': 0,
-            'page': 1,
-            'keyword': '',
-            'order': 'pubdate',
+            'ps': 100,
+            #'tid': 0,
+            'pn': 1,
+            #'keyword': '',
+            #'order': 'pubdate',
         }).json()
-        pagenum = response['data']['pages']
+        #print(response)
+        pagenum = response['data']['page']['count']
         #print(pagenum)
         #print(list(range(0,pagenum)))
         for i in range(1,pagenum+1): #根据获取的页数，循环发起get
             response = requests.get(GET_NUM_URL, {
                 "mid": uid,
-                'pagesize': 100,
-                'tid': 0,
-                'page': i,
-                'keyword': '',
-                'order': 'pubdate'
+                'ps': 100,
+                #'tid': 0,
+                'pn': i,
+                #'keyword': '',
+                #'order': 'pubdate'
             }).json()
             #print(len(response['data']['vlist']))
-            for info in response['data']['vlist']:
+            for info in response['data']['list']['vlist']:
                 video_struct = Video(info['aid'], info['title'], info['play'])
                 Sheet.append(video_struct) #一次get获取的100条视频信息封装进Video类对象存入list
         return Sheet
@@ -78,7 +80,7 @@ class UP:
 
 if __name__ == "__main__":
     #mid = 37663924
-    mid = input("UID:")
+    mid = int(input("UID:"))
     UP_struct = UP(mid)
     UP_struct.show()
     #videolist = makeVideoInfoList(mid)
